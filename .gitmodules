@@ -1,0 +1,3 @@
+[submodule "tiny_mysql"]
+	path = tiny_mysql
+	url = https://github.com/ykawa/tiny_mysql.git

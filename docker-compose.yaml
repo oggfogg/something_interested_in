@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  db:
+    container_name: db
+    image: mysql:latest
+    cap_add:
+      - SYS_NICE
+    command:
+      - --skip-networking=0
+      - --skip-bind-address
+      - --skip-name-resolve
+      - --skip-host-cache
+      - --skip-slave-start
+      - --skip-character-set-client-handshake
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - 3306:3306
+    volumes:
+      - ./initialize_data:/docker-entrypoint-initdb.d
+
+  postgres:
+    container_name: postgres
+    image: postgres:12
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgrespassword
+
+  graphql-engine:
+    container_name: graphql-engine
+    image: hasura/graphql-engine:pull5655-633f084f
+    ports:
+      - '8080:8080'
+    depends_on:
+      - db
+      - postgres
+      - ap
+    command:
+      - graphql-engine
+      - --mysql-host
+      - db
+      - --mysql-user
+      - root
+      - --mysql-port
+      - '3306'
+      - --mysql-dbname
+      - sample
+      - --mysql-password
+      - root
+      - serve
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/postgres
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true' # set to 'false' to disable console
+      HASURA_GRAPHQL_DEV_MODE: 'true'
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log # HASURA_GRAPHQL_ADMIN_SECRET: myadminsecretkey
+    restart: always
+
+  netutil:
+    container_name: netutil
+    build:
+      context: ./netutil
+    tty: true
+
+volumes:
+  db_data: {}
